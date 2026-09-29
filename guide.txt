@@ -1,0 +1,292 @@
+VIAS PROJECT — MOVE AND RUN ON A WINDOWS PC
+=============================================
+
+This guide moves the Vehicle Identification and Authentication System (VIAS)
+from this computer to a Windows PC and starts it locally. The app needs:
+
+  - Visual Studio Code (editor)
+  - Git (recommended, for safely moving/versioning the project)
+  - Bun (installs project packages and runs the app)
+  - Node.js (used by the API script)
+  - MySQL/MariaDB (XAMPP is the simplest option on Windows)
+
+The two application processes are:
+
+  Frontend: http://localhost:5173
+  API:      http://localhost:3001
+  Database: MySQL/MariaDB on port 3306
+
+
+PART 1 — PREPARE THE PROJECT ON THIS COMPUTER
+----------------------------------------------
+
+1. Make sure all work is saved.
+
+2. Do NOT transfer the node_modules folder. It contains operating-system-specific
+   packages and can be rebuilt on Windows. The important project files include:
+
+     package.json
+     bun.lock
+     src/
+     scripts/
+     database/
+     public/ (if present)
+     README.md and the other documentation files
+
+3. Pick ONE transfer method:
+
+   OPTION A — ZIP file / USB drive / cloud storage (simple)
+   - In the project folder, create a ZIP of the project.
+   - Before creating it, exclude node_modules, .git, dist, and any temporary files.
+   - Copy the ZIP to a USB drive, OneDrive, Google Drive, etc.
+   - On Windows, extract it to a normal development folder, for example:
+
+       C:\Users\YOUR-WINDOWS-USERNAME\Documents\Projects\VIAS
+
+   OPTION B — GitHub (recommended if you will work from more than one computer)
+   - Create a private GitHub repository.
+   - Commit and push the project from the current computer.
+   - Do not commit node_modules or passwords/secrets.
+   - On Windows, clone the repository instead of copying a ZIP:
+
+       git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git
+       cd YOUR-REPOSITORY
+
+4. Optional but important: preserve your current database records.
+
+   database/schema.sql creates a fresh database with demo data. It does NOT copy
+   vehicles, officers, or logs that you have added on this computer. To move those
+   records too, export the existing campus_access_now database using phpMyAdmin's
+   Export tab (Quick / SQL is sufficient), or run:
+
+       mysqldump -u root -p campus_access_now > vias-backup.sql
+
+   Transfer vias-backup.sql with the project. Keep it private: it may contain user,
+   vehicle, and log data.
+
+
+PART 2 — SET UP THE WINDOWS PC
+------------------------------
+
+1. Run Windows Update, then restart if Windows asks you to.
+
+2. Install Visual Studio Code.
+
+   - Go to https://code.visualstudio.com/
+   - Download the Windows installer and complete the installation.
+   - During setup, enable “Add to PATH” and “Add ‘Open with Code’ action” if those
+     options are offered.
+   - Open VS Code once after installation.
+   - In the Extensions panel (Ctrl+Shift+X), install these helpful extensions:
+
+       - ESLint
+       - Prettier - Code formatter
+       - Tailwind CSS IntelliSense
+
+3. Install Git.
+
+   - Go to https://git-scm.com/download/win
+   - Install with the default options.
+   - Open PowerShell and confirm it works:
+
+       git --version
+
+4. Install Node.js LTS.
+
+   - Go to https://nodejs.org/
+   - Download and install the LTS version.
+   - Close and reopen PowerShell, then check:
+
+       node --version
+
+5. Install Bun.
+
+   - Go to https://bun.sh/ and use the Windows installation instructions.
+   - Close and reopen PowerShell after installing, then check:
+
+       bun --version
+
+   If Windows cannot find bun, restart Windows or add Bun's install directory to
+   your user PATH according to Bun's installation instructions.
+
+6. Install XAMPP (MySQL/MariaDB and phpMyAdmin).
+
+   - Go to https://www.apachefriends.org/
+   - Download and install XAMPP for Windows.
+   - Open the XAMPP Control Panel.
+   - Start MySQL. Its status should become Running.
+   - If port 3306 is already in use, stop the conflicting MySQL service or configure
+     this project's DB_PORT to match XAMPP's MySQL port.
+
+
+PART 3 — PUT THE PROJECT IN VS CODE
+-----------------------------------
+
+1. Put the transferred project in a short local folder, such as:
+
+     C:\Users\YOUR-WINDOWS-USERNAME\Documents\Projects\VIAS
+
+   Avoid OneDrive-synced folders while developing if possible; file syncing can slow
+   Vite down or cause file-watch issues.
+
+2. Open the folder in VS Code:
+
+   - Start VS Code.
+   - Select File > Open Folder.
+   - Choose the VIAS project folder (the folder that contains package.json).
+   - If VS Code asks whether you trust the folder, choose Trust.
+
+3. Open the built-in terminal with Ctrl+` (Ctrl plus the backtick key).
+   Make sure its location ends in your VIAS folder. If not, run:
+
+     cd "C:\Users\YOUR-WINDOWS-USERNAME\Documents\Projects\VIAS"
+
+4. Install the project packages. This recreates node_modules for Windows:
+
+     bun install
+
+   Wait for it to finish without errors.
+
+
+PART 4 — CREATE OR RESTORE THE DATABASE
+----------------------------------------
+
+1. Keep MySQL running in the XAMPP Control Panel.
+
+2. In a web browser, open phpMyAdmin:
+
+     http://localhost/phpmyadmin
+
+3. Choose ONE database option:
+
+   OPTION A — Fresh demo database
+   - Select the Import tab.
+   - Choose this project file:
+
+       database\schema.sql
+
+   - Click Import/Go.
+   - It creates the campus_access_now database, its tables, and the demo admin.
+
+   OPTION B — Restore your transferred database data
+   - Select the Import tab.
+   - Choose the vias-backup.sql exported in Part 1.
+   - Click Import/Go.
+
+4. The normal local XAMPP defaults are already compatible with this app:
+
+     Database host: 127.0.0.1
+     Database port: 3306
+     Database user: root
+     Database password: empty
+     Database name: campus_access_now
+
+   If your Windows MySQL setup uses a password or a different port, set PowerShell
+   environment variables BEFORE starting the API. Example:
+
+     $env:DB_USER = "root"
+     $env:DB_PASSWORD = "YOUR-MYSQL-PASSWORD"
+     $env:DB_NAME = "campus_access_now"
+     $env:DB_PORT = "3306"
+
+   These settings apply only to the current terminal window. Do not put passwords
+   into source files or commit them to Git.
+
+
+PART 5 — START VIAS
+-------------------
+
+You need two terminals open in the VS Code project folder.
+
+TERMINAL 1 — API
+
+  1. Open a terminal (Ctrl+`).
+  2. Run:
+
+       bun run api
+
+  3. Leave this terminal running. You should see a message that the API is listening
+     on port 3001. To test it, open http://localhost:3001/api/health in a browser.
+
+TERMINAL 2 — FRONTEND
+
+  1. In VS Code, click the + icon in the Terminal panel to open another terminal.
+  2. Run:
+
+       bun run dev
+
+  3. Open the address printed in the terminal, normally:
+
+       http://localhost:5173
+
+  4. For a fresh schema import, sign in with:
+
+       Username: admin
+       Password: admin123
+
+     Change or remove this demo account before any non-demo use.
+
+Stop either server with Ctrl+C in its terminal.
+
+
+PART 6 — CHECK THAT EVERYTHING WORKS
+------------------------------------
+
+Run these optional checks from the project folder:
+
+  bun run lint
+  bun run build
+  node --check scripts/vias-api.mjs
+
+Expected result: each command finishes without an error. `bun run build` creates a
+dist folder; it is generated output and does not need to be transferred or committed.
+
+
+TROUBLESHOOTING
+---------------
+
+“bun is not recognized”
+  Close and reopen PowerShell after installing Bun. If that does not work, restart
+  Windows and confirm Bun's installation folder is in the PATH.
+
+“Cannot connect to database” or API will not start
+  Check that MySQL says Running in XAMPP. Confirm the database was imported and that
+  the DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, and DB_NAME values match your MySQL
+  configuration. The default database name is campus_access_now.
+
+“Port 3001 is already in use”
+  Stop the other program using it, or use a different port for this terminal:
+
+    $env:VIAS_API_PORT = "3002"
+    bun run api
+
+  If changing the API port, also update the Vite proxy in vite.config.ts to point to
+  the same port before running `bun run dev`.
+
+“Port 5173 is already in use”
+  Stop the other Vite process, or use the alternative URL that Vite prints.
+
+Pages load but API features fail
+  Start both terminals: `bun run api` AND `bun run dev`. The frontend development
+  server sends /api requests to the API server.
+
+PowerShell blocks an installer script
+  Use the official installer/download page in a browser, or run PowerShell as the
+  same Windows user that will develop the project. Do not lower execution-policy
+  security settings unless you understand the change.
+
+Git says files changed unexpectedly
+  Do not commit node_modules, dist, database backups, or passwords. Use `git status`
+  to review changes before committing.
+
+
+DAILY WINDOWS WORKFLOW
+----------------------
+
+1. Open XAMPP and start MySQL.
+2. Open the VIAS folder in VS Code.
+3. Terminal 1: `bun run api`
+4. Terminal 2: `bun run dev`
+5. Visit http://localhost:5173.
+6. When finished, press Ctrl+C in both terminals. You may then stop MySQL in XAMPP.
+
